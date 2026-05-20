@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>FinSight Institutional Research Console</title>
   <link rel="icon" type="image/svg+xml" href="/brand-favicon.svg">
-  <link rel="stylesheet" href="/styles.css?v=20260518a">
+  <link rel="stylesheet" href="/styles.css?v=20260520a">
 </head>
 <body>
   <header class="terminal-topbar">
@@ -127,6 +127,32 @@
         </article>
       </section>
 
+      <section id="researchDesk" class="research-grid">
+        <article class="panel research-panel">
+          <div class="section-title">
+            <div>
+              <h2>Research Task</h2>
+              <span>统一投研任务入口：幂等调度、状态机推进和失败恢复</span>
+            </div>
+            <strong id="researchTaskStatus" class="task-status">Ready</strong>
+          </div>
+          <div id="researchTimeline" class="timeline-strip"></div>
+          <dl id="researchTaskMeta" class="meta-grid"></dl>
+        </article>
+
+        <article class="panel research-panel">
+          <div class="section-title">
+            <div>
+              <h2>Report Trace</h2>
+              <span>报告版本、数据快照和证据绑定</span>
+            </div>
+            <strong id="reportTraceStatus" class="task-status neutral">Pending</strong>
+          </div>
+          <div id="reportTrustPanel" class="trust-grid"></div>
+          <div id="reportEvidenceTrace" class="trace-list"></div>
+        </article>
+      </section>
+
       <section id="health" class="panel">
         <div class="section-title">
           <div>
@@ -193,6 +219,6 @@
     </aside>
   </main>
 
-  <script src="/app.js?v=20260518a"></script>
+  <script src="/app.js?v=20260520a"></script>
 </body>
 </html>

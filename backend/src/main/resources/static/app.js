@@ -8,6 +8,8 @@ let latestCandles = [];
 let latestAiAnalysis = null;
 let latestWorkflowSummary = null;
 let latestEvaluationRun = null;
+let latestResearchTask = null;
+let latestReportTrace = null;
 
 const $ = (id) => document.getElementById(id);
 
@@ -28,7 +30,8 @@ async function refresh() {
     metrics,
     risks,
     status,
-    aiAnalysis
+    aiAnalysis,
+    reportTrace
   ] = await Promise.all([
     request("/api/companies?limit=200").catch(() => companies),
     request("/api/companies/count").catch(() => ({ count: companies.length })),
@@ -44,7 +47,8 @@ async function refresh() {
     request(`/api/metrics/${symbol}`).catch(() => []),
     request(`/api/metrics/${symbol}/risks`).catch(() => []),
     request(`/api/companies/${symbol}/analysis-status`).catch(() => null),
-    request(`/api/companies/${symbol}/ai-analysis/latest`).catch(() => null)
+    request(`/api/companies/${symbol}/ai-analysis/latest`).catch(() => null),
+    request(`/api/research/reports/${symbol}/trace`).catch(() => null)
   ]);
 
   companies = nextCompanies;
@@ -52,6 +56,7 @@ async function refresh() {
   latestQuote = quote;
   latestCandles = candles;
   latestAiAnalysis = aiAnalysis;
+  latestReportTrace = reportTrace;
 
   renderUniverseStatus();
   renderStockList();
@@ -62,6 +67,7 @@ async function refresh() {
   renderChart(candles, quote, aiAnalysis);
   renderChartStats(candles, quote);
   renderOpenSourceProof();
+  renderResearchDesk();
 }
 
 function updateCompanyCard(quote = null) {
@@ -650,11 +656,12 @@ async function runWorkflow() {
     symbol = normalizeSymbol($("symbolInput").value);
     $("symbolInput").value = symbol;
     updateCompanyCard(latestQuote);
-    await request("/api/companies/batch-analysis", {
+    latestResearchTask = await request("/api/research/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ symbols: [symbol] })
+      body: JSON.stringify({ symbol })
     });
+    renderResearchDesk();
     await refresh();
     await search();
   } finally {
@@ -675,14 +682,18 @@ async function runOpenSourceDemo() {
       ["重算财务指标", () => request(`/api/metrics/recalculate/${symbol}`, { method: "POST" })],
       ["重建证据索引", () => request(`/api/document-index/${symbol}/rebuild`, { method: "POST" })],
       ["构建公司画像", () => request(`/api/intelligence/${symbol}/rebuild`, { method: "POST" })],
-      ["生成 AI 研报", () => request(`/api/companies/${symbol}/ai-analysis`)],
+      ["生成 AI 研报", () => request("/api/research/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbol })
+      })],
       ["运行 RAG 评测", () => request("/api/evaluations/rag/run", { method: "POST" })]
     ];
     for (const [label, action] of steps) {
       renderUniverseStatus(`Demo: ${label}...`);
       const result = await action();
       if (label === "生成 AI 研报") {
-        latestAiAnalysis = result;
+        latestResearchTask = result;
       }
       if (label === "运行 RAG 评测") {
         latestEvaluationRun = result;
@@ -771,6 +782,87 @@ async function refreshOpenSourceProof(runEvaluation = false) {
   latestWorkflowSummary = workflowSummary;
   latestEvaluationRun = evaluationRun;
   renderOpenSourceProof();
+}
+
+function renderResearchDesk() {
+  const task = latestResearchTask;
+  const trace = latestReportTrace;
+  const stages = [
+    "CREATED",
+    "INGESTING_DATA",
+    "METRIC_CALCULATING",
+    "DOCUMENT_INDEXING",
+    "INTELLIGENCE_BUILDING",
+    "AI_ANALYZING",
+    "SUCCEEDED"
+  ];
+  const activeStage = task?.stage || (latestAiAnalysis ? "SUCCEEDED" : "CREATED");
+  const activeIndex = Math.max(0, stages.indexOf(activeStage));
+  $("researchTaskStatus").textContent = task ? task.status : (latestAiAnalysis ? "SUCCEEDED" : "Ready");
+  $("researchTaskStatus").className = `task-status ${taskStatusClass(task?.status || (latestAiAnalysis ? "SUCCEEDED" : "CREATED"))}`;
+  $("researchTimeline").innerHTML = stages.map((stage, index) => `
+    <span class="${index <= activeIndex ? "active" : ""} ${stage === activeStage ? "current" : ""}">
+      ${escapeHtml(stageLabel(stage))}
+    </span>
+  `).join("");
+  $("researchTaskMeta").innerHTML = [
+    ["Task ID", task?.taskId || "--"],
+    ["Idempotency", compactHash(task?.idempotencyKey)],
+    ["Fencing Token", task?.fencingToken ?? "--"],
+    ["Attempts", task?.attempts ?? "--"],
+    ["Lease Owner", task?.leaseOwner || "released"],
+    ["Updated", formatDateTime(task?.updatedAt) || "--"]
+  ].map(([label, value]) => `
+    <div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>
+  `).join("");
+
+  $("reportTraceStatus").textContent = trace ? `v${trace.reportVersion}` : "Pending";
+  $("reportTraceStatus").className = `task-status ${trace ? "success" : "neutral"}`;
+  $("reportTrustPanel").innerHTML = [
+    ["Report ID", compactHash(trace?.reportId || latestAiAnalysis?.reportId)],
+    ["Snapshot", compactHash(trace?.dataSnapshotHash || latestAiAnalysis?.dataSnapshotHash)],
+    ["Cache Hit", String(trace?.cacheHit ?? latestAiAnalysis?.cacheHit ?? false)],
+    ["Model", trace?.model || latestAiAnalysis?.model || "--"],
+    ["Evidence", `${trace?.evidence?.length || latestAiAnalysis?.citations?.length || 0} linked`],
+    ["Generated", formatDateTime(trace?.generatedAt || latestAiAnalysis?.generatedAt) || "--"]
+  ].map(([label, value]) => `
+    <article><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>
+  `).join("");
+  const evidence = trace?.evidence || [];
+  $("reportEvidenceTrace").innerHTML = evidence.length
+    ? evidence.slice(0, 4).map(item => `
+      <article>
+        <strong>${escapeHtml(item.title)}</strong>
+        <p>${escapeHtml(item.text)}</p>
+        <span>${escapeHtml(item.section)} · ${escapeHtml(item.channel)} · ${Number(item.score).toFixed(2)}</span>
+      </article>
+    `).join("")
+    : `<div class="empty-note">生成报告后，这里会展示报告结论绑定的证据片段。</div>`;
+}
+
+function taskStatusClass(status) {
+  if (status === "SUCCEEDED") {
+    return "success";
+  }
+  if (status === "FAILED" || status === "DEAD_LETTER") {
+    return "danger";
+  }
+  if (status === "RUNNING" || status === "RETRYING") {
+    return "running";
+  }
+  return "neutral";
+}
+
+function stageLabel(stage) {
+  return ({
+    CREATED: "创建",
+    INGESTING_DATA: "采集",
+    METRIC_CALCULATING: "指标",
+    DOCUMENT_INDEXING: "索引",
+    INTELLIGENCE_BUILDING: "画像",
+    AI_ANALYZING: "研报",
+    SUCCEEDED: "完成"
+  })[stage] || stage;
 }
 
 function renderOpenSourceProof() {
@@ -871,6 +963,11 @@ function formatMoney(value) {
 
 function formatDateTime(value) {
   return value ? String(value).replace("T", " ").replace("Z", "") : "";
+}
+
+function compactHash(value) {
+  const text = String(value || "");
+  return text ? `${text.slice(0, 12)}${text.length > 12 ? "..." : ""}` : "--";
 }
 
 function numeric(value) {
