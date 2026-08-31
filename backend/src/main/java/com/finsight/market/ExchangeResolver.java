@@ -13,6 +13,15 @@ public class ExchangeResolver {
 
     public String exchangeOf(String symbol) {
         String normalized = normalizeSymbol(symbol);
+        if (normalized.startsWith("SH")) {
+            return "SH";
+        }
+        if (normalized.startsWith("SZ")) {
+            return "SZ";
+        }
+        if (normalized.startsWith("BJ")) {
+            return "BJ";
+        }
         if (normalized.startsWith("92") || normalized.startsWith("8") || normalized.startsWith("4")) {
             return "BJ";
         }
