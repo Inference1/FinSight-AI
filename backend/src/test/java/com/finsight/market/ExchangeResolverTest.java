@@ -25,6 +25,9 @@ class ExchangeResolverTest {
     @Test
     void trimsAndNormalizesSymbolsBeforeResolving() {
         assertThat(resolver.normalizeSymbol("  sh600519 ")).isEqualTo("SH600519");
+        assertThat(resolver.exchangeOf("  sh600519 ")).isEqualTo("SH");
+        assertThat(resolver.exchangeOf("sz000001")).isEqualTo("SZ");
+        assertThat(resolver.exchangeOf("bj920002")).isEqualTo("BJ");
         assertThat(resolver.sinaPrefix(" 600519 ")).isEqualTo("sh");
     }
 }
