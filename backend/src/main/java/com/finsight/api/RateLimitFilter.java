@@ -129,10 +129,6 @@ public class RateLimitFilter {
         }
 
         private String clientKey(HttpServletRequest request) {
-            String forwarded = request.getHeader("X-Forwarded-For");
-            if (forwarded != null && !forwarded.isBlank()) {
-                return forwarded.split(",")[0].trim();
-            }
             return request.getRemoteAddr() == null ? "unknown" : request.getRemoteAddr();
         }
     }
