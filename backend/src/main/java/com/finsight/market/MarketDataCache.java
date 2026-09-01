@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -67,8 +68,9 @@ public class MarketDataCache {
     }
 
     public void invalidate(String symbol) {
-        quoteCache.invalidate(symbol);
-        historyCache.asMap().keySet().removeIf(k -> k.startsWith(symbol + ":"));
+        String normalized = symbol == null ? "" : symbol.trim().toUpperCase(Locale.ROOT);
+        quoteCache.invalidate(normalized);
+        historyCache.asMap().keySet().removeIf(k -> k.startsWith(normalized + ":"));
     }
 
     private static String historyKey(String symbol, int limit, boolean demo) {
