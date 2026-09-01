@@ -54,8 +54,8 @@ public class RateLimitFilter {
         private static final Set<String> AUTH_PREFIXES = Set.of(
                 "/api/auth/login",
                 "/api/auth/register",
-                "/api/auth/reset",
-                "/api/auth/verify"
+                "/api/auth/verification-code",
+                "/api/auth/password-reset/"
         );
         private static final Set<String> ANALYSIS_PREFIXES = Set.of(
                 "/api/research"
@@ -129,10 +129,6 @@ public class RateLimitFilter {
         }
 
         private String clientKey(HttpServletRequest request) {
-            String forwarded = request.getHeader("X-Forwarded-For");
-            if (forwarded != null && !forwarded.isBlank()) {
-                return forwarded.split(",")[0].trim();
-            }
             return request.getRemoteAddr() == null ? "unknown" : request.getRemoteAddr();
         }
     }
@@ -141,4 +137,3 @@ public class RateLimitFilter {
         AUTH, WRITE, ANALYSIS
     }
 }
-
