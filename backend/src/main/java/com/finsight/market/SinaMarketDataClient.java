@@ -29,7 +29,8 @@ public class SinaMarketDataClient implements MarketDataClient {
     public MarketQuote quote(String symbol) {
         String normalized = exchangeResolver.normalizeSymbol(symbol);
         String exchange = exchangeResolver.exchangeOf(normalized);
-        String marketSymbol = exchangeResolver.sinaPrefix(normalized) + normalized;
+        String marketCode = normalized.replaceFirst("^(SH|SZ|BJ)", "");
+        String marketSymbol = exchangeResolver.sinaPrefix(normalized) + marketCode;
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://hq.sinajs.cn/list=" + marketSymbol))
                 .timeout(Duration.ofSeconds(3))
