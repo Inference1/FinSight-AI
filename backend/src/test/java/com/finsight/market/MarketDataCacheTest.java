@@ -29,7 +29,7 @@ class MarketDataCacheTest {
     }
 
     @Test
-    void invalidationClearsBothBuckets() {
+    void invalidationNormalizesSymbolBeforeClearingBothBuckets() {
         MarketDataCache cache = new MarketDataCache();
         cache.putQuote("600519", new MarketQuote(
                 "600519", "SH", "贵州茅台", BigDecimal.ONE, BigDecimal.ZERO,
@@ -38,7 +38,7 @@ class MarketDataCacheTest {
         ));
         cache.putHistory("600519", 60, List.of());
 
-        cache.invalidate("600519");
+        cache.invalidate(" 600519 ");
 
         assertThat(cache.getQuote("600519")).isEmpty();
         assertThat(cache.getHistory("600519", 60)).isEmpty();

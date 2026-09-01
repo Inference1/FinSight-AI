@@ -54,8 +54,8 @@ public class RateLimitFilter {
         private static final Set<String> AUTH_PREFIXES = Set.of(
                 "/api/auth/login",
                 "/api/auth/register",
-                "/api/auth/reset",
-                "/api/auth/verify"
+                "/api/auth/verification-code",
+                "/api/auth/password-reset/"
         );
         private static final Set<String> ANALYSIS_PREFIXES = Set.of(
                 "/api/research"
